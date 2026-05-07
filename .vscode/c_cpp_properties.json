@@ -1,0 +1,28 @@
+{
+    "configurations": [
+        {
+            "name": "STM32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/Core/Inc",
+                "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Inc",
+                "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32F1xx/Include",
+                "${workspaceFolder}/Drivers/CMSIS/Include",
+                "${workspaceFolder}/oled",
+                "D:/KEIL/stm32/ARM/PACK/ARM/CMSIS/5.0.1/CMSIS/Include",
+                "D:/KEIL/stm32/ARM/PACK/Keil/STM32F1xx_DFP/2.2.0/Device/Include",
+                "D:/KEIL/stm32/ARM/ARMCC/include",
+                "D:/KEIL/stm32/ARM/ARMCLANG/include"
+            ],
+            "defines": [
+                "STM32F103xB",
+                "USE_HAL_DRIVER",
+                "_RTE_"
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-arm"
+        }
+    ],
+    "version": 4
+}
