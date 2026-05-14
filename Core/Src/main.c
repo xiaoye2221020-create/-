@@ -33,6 +33,7 @@
 #include "menu.h"
 #include "TIMESET.h"
 #include "item.h"
+#include "cmsis_os.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,18 +55,62 @@
 
 /* USER CODE BEGIN PV */
 
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
+
+/* Definitions for DisplayTask */
+osThreadId_t DisplayTaskHandle;
+const osThreadAttr_t DisplayTask_attributes = {
+  .name = "DisplayTask",
+  .stack_size = 512 * 4,
+  .priority = osPriorityNormal,
+};
+
+void StartDisplayTask(void *argument);
+
+void MX_FREERTOS_Init(void)
+{
+  DisplayTaskHandle = osThreadNew(StartDisplayTask, NULL, &DisplayTask_attributes);
+}
+
+void StartDisplayTask(void *argument)
+{
+  OLED_Init();
+  OLED_Clear();
+
+  if (MPU6050_Init() != HAL_OK)
+  {
+    OLED_ShowString(0, 0, "MPU6050 Error!", OLED_8X16);
+    OLED_Update();
+    osDelay(2000);
+  }
+
+  int clkflag;
+  while (1)
+  {
+    clkflag = First_Page_Clack();
+    if (clkflag == 1)
+    {
+      Menu();
+    }
+    else if (clkflag == 2)
+    {
+      SettingPage();
+      OLED_Update();
+    }
+  }
+}
 
 /**
   * @brief  The application entry point.
@@ -102,42 +147,22 @@ int main(void)
   MX_TIM2_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-	HAL_TIM_Base_Start_IT(&htim2);
-  OLED_Init();
-	OLED_Clear();
-  Key_Init();  // ��ʼ������״̬��
-  int clkflag1;
-  // MPU6050��ʼ������������
-  if (MPU6050_Init() != HAL_OK)
-  {
-      // ��ʼ��ʧ�ܣ���ʾ������Ϣ
-      OLED_ShowString(0, 0, "MPU6050 Error!", OLED_8X16);
-      OLED_Update();
-      HAL_Delay(2000);
-  }
-
- 
-
+  Key_Init();
+  HAL_TIM_Base_Start_IT(&htim2);
   /* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+  /* Init scheduler */
+  osKernelInitialize();
+  MX_FREERTOS_Init();
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   while (1)
   {
-
-  clkflag1=First_Page_Clack();
-  if (clkflag1==1){Menu();}//�˵�����
-  else if (clkflag1==2){SettingPage();OLED_Update();}//���ý���
-
   }
-}        
-      
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  
-  /* USER CODE END 3 */
-
+}
 
 /**
   * @brief System Clock Configuration
@@ -190,12 +215,12 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-    if (htim->Instance == TIM2) // ȷ���Ƕ�ʱ��2����
-    {
-      StopWatch_Tick(); // ����ʱ
-      Key_Scan();       // ����ɨ�裨��״̬���汾��
-      DIno_Tick();      // ��Ϸ����
-    }
+  if (htim->Instance == TIM2)
+  {
+    StopWatch_Tick();
+    Key_Scan();
+    DIno_Tick();
+  }
 }
 
 /* USER CODE END 4 */

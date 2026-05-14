@@ -35,3 +35,12 @@
 1_1 test\stm32f1xx_it.o: ../Core/Inc/Key.h
 1_1 test\stm32f1xx_it.o: ../Core/Inc/main.h
 1_1 test\stm32f1xx_it.o: ../Core/Inc/stm32f1xx_it.h
+1_1 test\stm32f1xx_it.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+1_1 test\stm32f1xx_it.o: ../Core/Inc/FreeRTOSConfig.h
+1_1 test\stm32f1xx_it.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+1_1 test\stm32f1xx_it.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+1_1 test\stm32f1xx_it.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+1_1 test\stm32f1xx_it.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3/portmacro.h
+1_1 test\stm32f1xx_it.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+1_1 test\stm32f1xx_it.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+1_1 test\stm32f1xx_it.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h

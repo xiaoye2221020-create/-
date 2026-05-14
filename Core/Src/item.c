@@ -3,6 +3,7 @@
 #include "Key.h"
 #include "item.h"
 #include "mpu6050.h"
+#include "cmsis_os.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -44,7 +45,7 @@ static void Init_Attitude(void)
             sum_roll += atan2f(ay, az) * 180.0f / pi;
             valid_count++;
         }
-        HAL_Delay(2);
+        osDelay(2);
     }
 
     if (valid_count > 0)
@@ -126,7 +127,7 @@ void Menu_MPU6050(void)
         OLED_Printf(0, 32, OLED_8X16, 0, "Pitch:%.2f", Pitch);
         OLED_Printf(0, 48, OLED_8X16, 0, "Yaw:  %.2f", Yaw);
         OLED_Update();
-        HAL_Delay(5); // 5ms
+        osDelay(5); // 5ms
     }
 }
 
@@ -320,7 +321,7 @@ int isColliding(struct Object_Position *a, struct Object_Position *b)
         OLED_Clear();
         OLED_ShowString(28, 24, "Game Over!", OLED_8X16);
         OLED_Update();
-        HAL_Delay(1000);
+        osDelay(1000);
         OLED_Clear();
         OLED_Update();
         return 1;    
@@ -452,7 +453,7 @@ void Show_Emoji(void)
         OLED_ShowImage(82,10+i,16,16,Eyebrow[1]);
         OLED_ShowImage(54,20,20,20,Mouth);
         OLED_Update();
-        HAL_Delay(100);
+        osDelay(100);
     }
     for (uint8_t i = 0; i < 3; i++)
     {
@@ -463,9 +464,9 @@ void Show_Emoji(void)
         OLED_ShowImage(82,12-i,16,16,Eyebrow[1]);
         OLED_ShowImage(54,20,20,20,Mouth);
         OLED_Update();
-        HAL_Delay(100);
+        osDelay(100);
     }
-    HAL_Delay(500);
+    osDelay(500);
     
 }
 

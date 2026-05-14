@@ -5,6 +5,7 @@
 #include "OLED.h"
 #include "Key.h"
 #include "menu.h"
+#include "cmsis_os.h"
 
 // 陀螺仪零偏校准值
 static int16_t Gyro_Offset_X = 0;
@@ -28,15 +29,15 @@ static void I2C_Bus_Reset(void)
     for (int i = 0; i < 9; i++)
     {
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
-        HAL_Delay(1);
+        osDelay(1);
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
-        HAL_Delay(1);
+        osDelay(1);
     }
 
     // 发送停止条件
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
-    HAL_Delay(1);
+    osDelay(1);
 
     // 重新初始化I2C
     HAL_I2C_DeInit(&hi2c2);
@@ -119,7 +120,7 @@ void MPU6050_CalibrateGyro(void)
         sum_y += gy;
         sum_z += gz;
         success_count++;
-        HAL_Delay(2); // 缩短延时
+        osDelay(2); // 缩短延时
     }
 
     if (success_count > 0)
@@ -155,7 +156,7 @@ HAL_StatusTypeDef MPU6050_Init(void)
     if (status != HAL_OK) return status;
 
     // 等待传感器稳定
-    HAL_Delay(100);
+    osDelay(100);
 
     // 执行陀螺仪零偏校准
     MPU6050_CalibrateGyro();

@@ -9,6 +9,7 @@
 #include "item.h"
 #include "power.h"
 #include "adc.h"
+#include "cmsis_os.h"
 #define GET_MENU_INDEX(x) (((x) + 7) % 7)
 
 // 使用Key.h中声明的全局变量Key_Num
@@ -109,10 +110,10 @@ int First_Page_Clack(void)
         OLED_Update();
         break;
     }
+    osDelay(10);
+    osDelay(10);
   }
 }
-
-
 void Show_SettingPage(void)
 
 {
@@ -168,10 +169,10 @@ int SettingPage(void)
         OLED_Update();
         break;
     }
+    osDelay(10);
+    osDelay(10);
   }
 }
-
-
 
 /*------------------------------???????-------------------------------*/
 
@@ -219,8 +220,6 @@ void Menu_Animation(void)
     OLED_Update();
 
 }
-
-
 void Set_Selection(uint8_t move_flag,uint8_t Pre_Selection,uint8_t Target_Selection)
 {  
     if (move_flag == 1) // ??????
@@ -244,8 +243,6 @@ void Menu_FirstPage(void)
     OLED_Update();
 
 }
-
-
 
 uint8_t menu_flag=1;
 
@@ -298,8 +295,7 @@ int Menu(void)
 			if(DirectFlag==1)Set_Selection(menu_item.move_flag,menu_flag,menu_flag-1);
 			else if(DirectFlag==2)Set_Selection(menu_item.move_flag,menu_flag-2,menu_flag-1);
     }
+    osDelay(10);
   }
 }
-
-
 

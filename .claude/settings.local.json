@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(env)",
+      "Bash(powershell *)",
+      "Bash(reg query *)",
+      "Bash(reg delete *)",
+      "Bash(unzip -l /c/Users/32849/Desktop/FreeRTOSv202411.00.zip)",
+      "Bash(cp *)",
+      "Bash(sed -i '115s/    osDelay\\(10\\);//' menu.c)",
+      "Bash(sed -i '/^$/N;/^\\\\n$/d' menu.c)",
+      "Bash(sed *)",
+      "Read(//c/c/Users/32849/Desktop/手表/手表 - 副本 \\(2\\)/MDK-ARM/**)",
+      "Bash(python3 -c ' *)",
+      "Bash(xmllint --noout \"/c/Users/32849/Desktop/手表/手表 - 副本 \\(2\\)/MDK-ARM/1_1 Test.uvprojx\")"
+    ]
+  }
+}

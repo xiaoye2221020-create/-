@@ -40,3 +40,14 @@
 1_1 test\timeset.o: D:\KEIL\stm32\ARM\ARMCC\Bin\..\include\stdio.h
 1_1 test\timeset.o: ../Core/Inc/TIMESET.h
 1_1 test\timeset.o: ../Core/Inc/menu.h
+1_1 test\timeset.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h
+1_1 test\timeset.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+1_1 test\timeset.o: ../Core/Inc/FreeRTOSConfig.h
+1_1 test\timeset.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+1_1 test\timeset.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+1_1 test\timeset.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+1_1 test\timeset.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM3/portmacro.h
+1_1 test\timeset.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+1_1 test\timeset.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+1_1 test\timeset.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
+1_1 test\timeset.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h
