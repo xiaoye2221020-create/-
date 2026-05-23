@@ -1,0 +1,28 @@
+# Keil MDK build artifacts
+*.o
+*.d
+*.crf
+*.axf
+*.map
+*.lnp
+*.sct
+*.lst
+*.build_log.htm
+*.dep
+*.htm
+
+# Keil user config (per-user, not portable)
+*.uvguix.*
+
+# Keil project backup
+*.uvprojx.bak
+
+# JLink
+JLinkLog.txt
+*.jlink
+
+# Claude local settings
+.claude/settings.local.json
+
+# Generated hex files (optional, uncomment to ignore)
+# *.hex

@@ -54,7 +54,14 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+osMessageQueueId_t keyQueueHandle;
+osMutexId_t oledMutexHandle;
+osMutexId_t mpu6050MutexHandle;
+osSemaphoreId_t sensorDataReadySem;
+osSemaphoreId_t batteryDataReadySem;
+osSemaphoreId_t gameDoneSem;
+osTimerId_t oledSleepTimerHandle;
+uint8_t oled_asleep = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -77,17 +84,64 @@ const osThreadAttr_t DisplayTask_attributes = {
   .priority = osPriorityNormal,
 };
 
+osThreadId_t SensorTaskHandle;
+const osThreadAttr_t SensorTask_attributes = {
+  .name = "SensorTask",
+  .stack_size = 256 * 4,
+  .priority = osPriorityBelowNormal,
+};
+
+osThreadId_t BatteryTaskHandle;
+const osThreadAttr_t BatteryTask_attributes = {
+  .name = "BatteryTask",
+  .stack_size = 160 * 4,
+  .priority = osPriorityLow,
+};
+
+osThreadId_t GameTaskHandle;
+const osThreadAttr_t GameTask_attributes = {
+  .name = "GameTask",
+  .stack_size = 320 * 4,
+  .priority = osPriorityNormal,
+};
+
 void StartDisplayTask(void *argument);
+void StartSensorTask(void *argument);
+void StartBatteryTask(void *argument);
+void StartGameTask(void *argument);
+
+void OledSleepTimerCallback(void *argument)
+{
+		OLED_WriteCommand(0xAE);
+    oled_asleep = 1;
+}
+
+void vApplicationIdleHook(void)
+{
+    if (oled_asleep)
+    {
+        __WFI();
+    }
+}
 
 void MX_FREERTOS_Init(void)
 {
+  oledMutexHandle = osMutexNew(NULL);
+  mpu6050MutexHandle = osMutexNew(NULL);
+  sensorDataReadySem  = osSemaphoreNew(1, 0, NULL);
+  batteryDataReadySem = osSemaphoreNew(1, 0, NULL);
+  gameDoneSem         = osSemaphoreNew(1, 0, NULL);
+  oledSleepTimerHandle = osTimerNew(OledSleepTimerCallback, osTimerOnce, NULL, NULL);
   DisplayTaskHandle = osThreadNew(StartDisplayTask, NULL, &DisplayTask_attributes);
+  SensorTaskHandle  = osThreadNew(StartSensorTask,  NULL, &SensorTask_attributes);
+  BatteryTaskHandle = osThreadNew(StartBatteryTask, NULL, &BatteryTask_attributes);
 }
 
 void StartDisplayTask(void *argument)
 {
   OLED_Init();
   OLED_Clear();
+  osTimerStart(oledSleepTimerHandle, 10000);
 
   if (MPU6050_Init() != HAL_OK)
   {
@@ -99,6 +153,8 @@ void StartDisplayTask(void *argument)
   int clkflag;
   while (1)
   {
+    if (oled_asleep) { osDelay(100); continue; }
+
     clkflag = First_Page_Clack();
     if (clkflag == 1)
     {
@@ -149,6 +205,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   Key_Init();
   HAL_TIM_Base_Start_IT(&htim2);
+  keyQueueHandle = osMessageQueueNew(8, 1, NULL);
   /* USER CODE END 2 */
 
   /* Init scheduler */

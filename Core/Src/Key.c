@@ -1,8 +1,13 @@
 #include "main.h"
 #include "gpio.h"
 #include "Key.h"
+#include "OLED.h"
+#include "cmsis_os.h"
 
-// 全局按键值（兼容性）
+extern osMessageQueueId_t keyQueueHandle;
+extern osTimerId_t oledSleepTimerHandle;
+extern uint8_t oled_asleep;
+
 uint8_t Key_Num = KEY_NONE;
 
 // 三个按键的状态
@@ -96,17 +101,12 @@ void Key_Init(void)
  */
 void Key_Scan(void)
 {
-    // 如果上次按键还未读取，不再处理新按键（防止丢失）
-    if (key_value != KEY_NONE) {
-        return;
-    }
-    
-    // 依次处理三个按键
     for (int i = 0; i < 3; i++) {
         Key_Process(&keys[i]);
-        // 如果检测到按键事件，同步更新Key_Num并返回
         if (key_value != KEY_NONE) {
             Key_Num = key_value;
+            osMessageQueuePut(keyQueueHandle, &key_value, 0, 0);
+            key_value = KEY_NONE;
             break;
         }
     }
@@ -118,8 +118,22 @@ void Key_Scan(void)
  */
 uint8_t Key_GetNum(void)
 {
-    uint8_t temp = key_value;
+    uint8_t key = KEY_NONE;
+    osMessageQueueGet(keyQueueHandle, &key, NULL, 0);
     Key_Num = KEY_NONE;
-    key_value = KEY_NONE;
-    return temp;
+    if (key != KEY_NONE)
+    {
+        if (oled_asleep)
+        {
+            if (key != KEY_3 && key != KEY_3_LONG) return KEY_NONE;
+            oled_asleep = 0;
+            OLED_WriteCommand(0xAF);
+            osTimerStop(oledSleepTimerHandle);
+            osTimerStart(oledSleepTimerHandle, 10000);
+            return KEY_NONE;
+        }
+        osTimerStop(oledSleepTimerHandle);
+        osTimerStart(oledSleepTimerHandle, 10000);
+    }
+    return key;
 }

@@ -13,22 +13,23 @@
   - TIM2 定时器 (用于按键扫描、菜单刷新等)
 
 ## 软件架构
-- 固件库: STM32 HAL 库
-- 开发环境: Keil MDK-ARM (Project.uvprojx)
-- 代码生成: STM32CubeMX 6.17 (.ioc 文件)
-- 无 RTOS，裸机开发 (超级循环 + 定时器中断)
+- 固件库: STM32 HAL + FreeRTOS v10.3.1 (CMSIS-RTOS v2 API)
+- 开发环境: Keil MDK-ARM
+- 编码: UTF-8
 
-## 项目结构
-```
-手表/
-├── Core/
-│   ├── Inc/      # 头文件
-│   └── Src/      # 源文件 (main.c, gpio.c, i2c.c, Key.c, item.c, menu.c 等)
-├── Drivers/      # HAL 库驱动
-├── MDK-ARM/      # Keil 工程文件
-├── oled/         # OLED 驱动
-└── 1_1 Test.ioc  # CubeMX 配置文件
-```
+### FreeRTOS 任务
+| 任务 | 优先级 | 栈 | 职责 |
+|------|--------|-----|------|
+| DisplayTask | Normal | 2048 | UI 渲染/按键分发 |
+| SensorTask | BelowNormal | 1024 | MPU6050 5ms 轮询 + 抬腕检测 |
+| BatteryTask | Low | 640 | ADC 5s 电池采样 |
+| GameTask | Normal | 1280 | 恐龙游戏（按需创建） |
+
+### FreeRTOS 资源
+- 按键消息队列 (8槽) | OLED/I2C 互斥锁 | 传感器/电池/游戏信号量 | OLED 休眠定时器 (10s)
+
+### 关键 GPIO
+- PB12/PB13: OLED 电源 | PB15: 手电筒 LED | TIM2 中断优先级: 5
 
 ## 功能模块
 - 1_1 主界面 — 时间/日期显示

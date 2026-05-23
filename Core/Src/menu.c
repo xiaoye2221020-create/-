@@ -12,6 +12,8 @@
 #include "cmsis_os.h"
 #define GET_MENU_INDEX(x) (((x) + 7) % 7)
 
+extern osMutexId_t oledMutexHandle;
+
 // 使用Key.h中声明的全局变量Key_Num
 void Paper1_Init(void)
 {
@@ -25,20 +27,9 @@ int Battery_Capacity;
 
 void Shwo_Battery(void)
 {
-    int sum;
-     for (int i=0;i<3000;i++)
-    {
-        HAL_ADC_Start(&hadc1);
-        ADValue=HAL_ADC_GetValue(&hadc1);
-        sum+=ADValue;
-    }
-    ADValue=sum/3000;
-    VBAT=(float)ADValue/4095*3.3;
-    Battery_Capacity=(ADValue-3276)*100/735;
     if (Battery_Capacity<0){Battery_Capacity=0;}
-    
-//	OLED_Printf(64,0,OLED_6X8,0,"%d",ADValue);
-//	OLED_Printf(64,8,OLED_6X8,0,"VBAT:%.2fV",VBAT);
+    if (Battery_Capacity>100){Battery_Capacity=100;}
+
     OLED_ShowNum(85,4,Battery_Capacity,3,OLED_6X8);
     OLED_ShowChar(103,4,'%',OLED_6X8);
     if (Battery_Capacity==100)     OLED_ShowImage(110,0,16,16,Battery);
@@ -92,10 +83,10 @@ int First_Page_Clack(void)
         }
         else if (Key_Num==4)//???
         {
-           HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
-           HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
+           HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);
         }
 
+	osMutexAcquire(oledMutexHandle, osWaitForever);
     switch (clkflag)
     {
     case 1:
@@ -110,6 +101,7 @@ int First_Page_Clack(void)
         OLED_Update();
         break;
     }
+    osMutexRelease(oledMutexHandle);
     osDelay(10);
     osDelay(10);
   }
@@ -153,6 +145,7 @@ int SettingPage(void)
 	if(setflag_temp==1){return 0;}
     else if(setflag_temp==2){TimeSet();}
     
+	osMutexAcquire(oledMutexHandle, osWaitForever);
     switch (setflag)
     {
     case 1:
@@ -169,6 +162,7 @@ int SettingPage(void)
         OLED_Update();
         break;
     }
+    osMutexRelease(oledMutexHandle);
     osDelay(10);
     osDelay(10);
   }
@@ -181,6 +175,7 @@ MenuItem menu_item = {0, 0, 48, 8, 0}; // ??????????
 void Menu_Animation(void)
 
 {
+    osMutexAcquire(oledMutexHandle, osWaitForever);
     OLED_Clear();
     OLED_ShowImage(42,10,44,44,Frame);
     if (menu_item.pre_selection<menu_item.target_selection) // ???????
@@ -218,6 +213,7 @@ void Menu_Animation(void)
     OLED_ShowImage(menu_item.x_pre,16,32,32,Menu_Graph[menu_item.pre_selection]);
     OLED_ShowImage(menu_item.x_pre+96,16,32,32,Menu_Graph[menu_item.pre_selection+2]);
     OLED_Update();
+    osMutexRelease(oledMutexHandle);
 
 }
 void Set_Selection(uint8_t move_flag,uint8_t Pre_Selection,uint8_t Target_Selection)
@@ -233,14 +229,16 @@ void Set_Selection(uint8_t move_flag,uint8_t Pre_Selection,uint8_t Target_Select
 void Menu_FirstPage(void)
 
 {
-	menu_item.pre_selection %= 7; 
+	menu_item.pre_selection %= 7;
 
+    osMutexAcquire(oledMutexHandle, osWaitForever);
     OLED_Clear(); 
     OLED_ShowImage(42, 10, 44, 44, Frame); 
     OLED_ShowImage(0, 16, 32, 32, Menu_Graph[GET_MENU_INDEX(menu_item.pre_selection - 1)]);
     OLED_ShowImage(48, 16, 32, 32, Menu_Graph[GET_MENU_INDEX(menu_item.pre_selection)]);
     OLED_ShowImage(96, 16, 32, 32, Menu_Graph[GET_MENU_INDEX(menu_item.pre_selection + 1)]);
     OLED_Update();
+    osMutexRelease(oledMutexHandle);
 
 }
 

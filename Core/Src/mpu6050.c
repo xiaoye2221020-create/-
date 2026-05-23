@@ -7,6 +7,8 @@
 #include "menu.h"
 #include "cmsis_os.h"
 
+extern osMutexId_t mpu6050MutexHandle;
+
 // 陀螺仪零偏校准值
 static int16_t Gyro_Offset_X = 0;
 static int16_t Gyro_Offset_Y = 0;

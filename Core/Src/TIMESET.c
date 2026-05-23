@@ -7,6 +7,8 @@
 #include "menu.h"
 #include "cmsis_os.h"
 
+extern osMutexId_t oledMutexHandle;
+
 RTC_TimeTypeDef sTime;
 RTC_DateTypeDef sDate;
 
@@ -299,6 +301,7 @@ void TimeSet(void)
 
 
     
+	osMutexAcquire(oledMutexHandle, osWaitForever);
     switch (timeset_flg)
     {
     case 1:
@@ -352,6 +355,7 @@ void TimeSet(void)
 
 
     }
+    osMutexRelease(oledMutexHandle);
   }
 
 }

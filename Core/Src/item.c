@@ -6,6 +6,17 @@
 #include "cmsis_os.h"
 #include <math.h>
 #include <stdlib.h>
+#include "adc.h"
+
+extern osMutexId_t oledMutexHandle;
+extern osMutexId_t mpu6050MutexHandle;
+extern osSemaphoreId_t sensorDataReadySem;
+extern osSemaphoreId_t batteryDataReadySem;
+extern osSemaphoreId_t gameDoneSem;
+extern osThreadId_t GameTaskHandle;
+extern const osThreadAttr_t GameTask_attributes;
+extern osTimerId_t oledSleepTimerHandle;
+extern uint8_t oled_asleep;
 
 /*********************************MPU6050*************************/ 
 int16_t AX, AY, AZ, GX, GY, GZ;
@@ -19,7 +30,32 @@ double pi = 3.14159265359;
 
 
 
-//static uint8_t attitude_initialized = 0;
+static uint8_t attitude_initialized = 0;
+
+static float last_pitch_wake = -90.0f;
+static uint16_t wake_cooldown = 0;
+
+static void CheckRaiseToWake(void)
+{
+    if (wake_cooldown > 0) {
+        wake_cooldown--;
+        last_pitch_wake = pitch_a;
+        return;
+    }
+
+    float pitch_change = fabsf(pitch_a - last_pitch_wake);
+    if (pitch_change > 25.0f && fabsf(pitch_a) < 20.0f)
+    {
+        oled_asleep = 0;
+        OLED_WriteCommand(0xAF);
+        osTimerStop(oledSleepTimerHandle);
+        osTimerStart(oledSleepTimerHandle, 10000);
+        wake_cooldown = 400;
+    }
+
+    last_pitch_wake = pitch_a;
+}
+
 static float constrain_angle(float angle)
 {
     while (angle > 180.0f) angle -= 360.0f;
@@ -59,14 +95,14 @@ static void Init_Attitude(void)
         Rool = 0.0f;
     }
     Yaw = 0.0f;
-//    attitude_initialized = 1;
+    attitude_initialized = 1;
 }
 
 void MPU6050_Calculation(void)
 {
     HAL_StatusTypeDef status;
     uint8_t read_fail_count = 0;
-    Init_Attitude();
+    if (!attitude_initialized) Init_Attitude();
    
 
         status = MPU6050_GetData(&AX, &GX, &AY, &GY, &AZ, &GZ);
@@ -107,6 +143,20 @@ void MPU6050_Calculation(void)
     }
 
 
+void StartSensorTask(void *argument)
+{
+    osDelay(500);
+    while (1)
+    {
+        osMutexAcquire(mpu6050MutexHandle, osWaitForever);
+        MPU6050_Calculation();
+        osMutexRelease(mpu6050MutexHandle);
+        osSemaphoreRelease(sensorDataReadySem);
+        CheckRaiseToWake();
+        osDelay(5);
+    }
+}
+
 void Menu_MPU6050(void)
 {
      while (1)
@@ -119,7 +169,8 @@ void Menu_MPU6050(void)
 //            attitude_initialized = 0;
             return;
         }
-        MPU6050_Calculation();
+        osSemaphoreAcquire(sensorDataReadySem, osWaitForever);
+        osMutexAcquire(oledMutexHandle, osWaitForever);
         OLED_Clear();
         OLED_ShowImage(0, 0, 16, 16, Return);
         OLED_ReverseArea(0, 0, 16, 16);
@@ -127,6 +178,7 @@ void Menu_MPU6050(void)
         OLED_Printf(0, 32, OLED_8X16, 0, "Pitch:%.2f", Pitch);
         OLED_Printf(0, 48, OLED_8X16, 0, "Yaw:  %.2f", Yaw);
         OLED_Update();
+        osMutexRelease(oledMutexHandle);
         osDelay(5); // 5ms
     }
 }
@@ -204,6 +256,7 @@ void Menu_Timer(void)
         else if (stopwatch_flag_temp == 3) { menu_watch.start_time_flage = 0; }
         else if (stopwatch_flag_temp == 4) { menu_watch.start_time_flage = 0; menu_watch.hour = 0; menu_watch.min = 0; menu_watch.sec = 0; }
 
+		osMutexAcquire(oledMutexHandle, osWaitForever);
         switch (stopwatch_flag)
         {
         case 1:
@@ -230,6 +283,34 @@ void Menu_Timer(void)
             OLED_Update();
             break;
         }
+        osMutexRelease(oledMutexHandle);
+    }
+}
+
+extern int Battery_Capacity;
+extern uint16_t ADValue;
+extern float VBAT;
+
+void StartBatteryTask(void *argument)
+{
+    osDelay(2000);
+    while (1)
+    {
+        uint32_t sum = 0;
+        for (int i = 0; i < 10; i++)
+        {
+            HAL_ADC_Start(&hadc1);
+            sum += HAL_ADC_GetValue(&hadc1);
+            HAL_ADC_Stop(&hadc1);
+            osDelay(1);
+        }
+        ADValue = sum / 10;
+        VBAT = (float)ADValue / 4095.0f * 3.3f;
+        Battery_Capacity = (ADValue - 3276) * 100 / 735;
+        if (Battery_Capacity < 0) Battery_Capacity = 0;
+        if (Battery_Capacity > 100) Battery_Capacity = 100;
+        osSemaphoreRelease(batteryDataReadySem);
+        osDelay(5000);
     }
 }
 
@@ -297,7 +378,7 @@ struct Object_Position dino;
 
 void Show_Dino(void)
 {
-    if (Key_Num==1)Dino_jump_flag=1;
+    if (Key_GetNum()==1)Dino_jump_flag=1;
     Dino_jump_pos= 28*sin((float)(pi*Dino_jump_time/100));
     if (Dino_jump_flag==0)
     {
@@ -335,20 +416,23 @@ int DinoGame_Animation(void)
     while (1)
     {
         int return_flag;
+        osMutexAcquire(oledMutexHandle, osWaitForever);
         OLED_Clear();
         Show_Score();
         Show_Ground();
         Show_Barrier();
         Show_Dino();
         OLED_Update();
+        osMutexRelease(oledMutexHandle);
         return_flag=isColliding(&barrieer, &dino);
         if (return_flag==1)
         {
             return 0;
         }
+        osDelay(20);
     }
-    
-    
+
+
 }
 
 void DIno_Tick(void)
@@ -387,6 +471,13 @@ void Game_UI(void)
 
 
 
+void StartGameTask(void *argument)
+{
+    DinoGame_Animation();
+    osSemaphoreRelease(gameDoneSem);
+    osThreadTerminate(osThreadGetId());
+}
+
 void DinoGame_Init(void)
 {
     Score=0;
@@ -421,9 +512,14 @@ void Menu_Game(void)
         }
         
     if (game_flag_temp==1){return;}
-    else if (game_flag_temp==2){DinoGame_Init();DinoGame_Animation();}
+    else if (game_flag_temp==2){
+        DinoGame_Init();
+        GameTaskHandle = osThreadNew(StartGameTask, NULL, &GameTask_attributes);
+        osSemaphoreAcquire(gameDoneSem, osWaitForever);
+    }
     
     
+	osMutexAcquire(oledMutexHandle, osWaitForever);
     switch (game_flag)
     {
     case 1:
@@ -431,13 +527,14 @@ void Menu_Game(void)
         OLED_ReverseArea(0,0,16,16);
         OLED_Update();
         break;
-    
+
     case 2:
         Game_UI();
         OLED_ReverseArea(0,16,80,16);
         OLED_Update();
         break;
     }
+    osMutexRelease(oledMutexHandle);
 }
 }
 
@@ -446,6 +543,7 @@ void Show_Emoji(void)
 {
     for (uint8_t i = 0; i < 3; i++)
     {
+        osMutexAcquire(oledMutexHandle, osWaitForever);
         OLED_Clear();
         OLED_DrawEllipse(40,32,6,6-i,1);
         OLED_DrawEllipse(88,32,6,6-i,1);
@@ -453,10 +551,12 @@ void Show_Emoji(void)
         OLED_ShowImage(82,10+i,16,16,Eyebrow[1]);
         OLED_ShowImage(54,20,20,20,Mouth);
         OLED_Update();
+        osMutexRelease(oledMutexHandle);
         osDelay(100);
     }
     for (uint8_t i = 0; i < 3; i++)
     {
+        osMutexAcquire(oledMutexHandle, osWaitForever);
         OLED_Clear();
         OLED_DrawEllipse(40,32,6,4+i,1);
         OLED_DrawEllipse(88,32,6,4+i,1);
@@ -464,10 +564,11 @@ void Show_Emoji(void)
         OLED_ShowImage(82,12-i,16,16,Eyebrow[1]);
         OLED_ShowImage(54,20,20,20,Mouth);
         OLED_Update();
+        osMutexRelease(oledMutexHandle);
         osDelay(100);
     }
     osDelay(500);
-    
+
 }
 
 void Menu_Emoji(void)
@@ -528,6 +629,7 @@ void Menu_LED(void)
         else if (LED_flag_temp==3){HAL_GPIO_WritePin(LED_GPIO,LED_PIN, GPIO_PIN_SET);}
         
         
+		osMutexAcquire(oledMutexHandle, osWaitForever);
         switch (LED_flag)
         {
         case 1:
@@ -535,7 +637,7 @@ void Menu_LED(void)
             OLED_ReverseArea(0,0,16,16);
             OLED_Update();
             break;
-        
+
         case 2:
             LED_UI();
             OLED_ReverseArea(0,16,48,16);
@@ -548,6 +650,7 @@ void Menu_LED(void)
             OLED_Update();
             break;
         }
+        osMutexRelease(oledMutexHandle);
     }
 
 }
@@ -556,7 +659,6 @@ void Menu_LED(void)
 
 void Show_Gradienter_UI(void)
 {
-    MPU6050_Calculation();
     OLED_DrawCircle(64,32,30,0);
     OLED_DrawCircle(64-Rool,32+Pitch,4,1);
 }
@@ -565,7 +667,6 @@ void Menu_Gradienter(void)
 {
     while (1)
     {
-		Show_Gradienter_UI();
         Key_Num=Key_GetNum();
         if (Key_Num==3)
         {
@@ -573,8 +674,11 @@ void Menu_Gradienter(void)
             OLED_Update();
             return;
         }
+        osSemaphoreAcquire(sensorDataReadySem, osWaitForever);
+        osMutexAcquire(oledMutexHandle, osWaitForever);
         OLED_Clear();
         Show_Gradienter_UI();
         OLED_Update();
+        osMutexRelease(oledMutexHandle);
     }
 }

@@ -1,0 +1,71 @@
+#include "main.h"
+#include "OLED.h"
+#include "rtc.h"
+#include <stdio.h>
+#include "Key.h"
+#include "TIMESET.h"
+#include "menu.h"
+#include "cmsis_os.h"
+
+RTC_TimeTypeDef sTime;
+RTC_DateTypeDef sDate;
+
+
+void TimeSet_First_UI(void)
+{
+	uint16_t Year = 2000 + sDate.Year;
+    OLED_ShowImage(0,0,16,16,Return);
+    OLED_ShowString(0,16,"年",OLED_8X16);
+    OLED_ShowString(0,32,"月",OLED_8X16);
+    OLED_ShowString(0,48,"日",OLED_8X16);
+    OLED_Printf(16,16,OLED_8X16,5,":%4d",Year);
+    OLED_Printf(16,32,OLED_8X16,0,":%2d",sDate.Month);
+    OLED_Printf(16,48,OLED_8X16,0,":%2d",sDate.Date);
+}  
+
+void TimeSet_Second_UI(void)
+{
+    OLED_ShowString(0,0,"时",OLED_8X16);
+    OLED_ShowString(0,16,"分",OLED_8X16);
+    OLED_ShowString(0,32,"秒",OLED_8X16);
+	OLED_Printf(16,0,OLED_8X16,0,":%2d",sTime.Hours);
+    OLED_Printf(16,16,OLED_8X16,0,":%2d",sTime.Minutes);
+    OLED_Printf(16,32,OLED_8X16,0,":%2d",sTime.Seconds);
+	
+}  
+
+int year_set(void)
+{ 
+    while (1)
+		
+    {
+        Key_Num = Key_GetNum();
+        if (Key_Num == 1)
+        {
+            if (sDate.Year > 0) sDate.Year--;
+            else sDate.Year = 99;
+        }
+        else if (Key_Num == 2)
+        {
+            sDate.Year++;
+            if (sDate.Year > 99) sDate.Year = 0;
+        }
+        else if (Key_Num == 3)
+        {
+            HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+            return 0; 
+        }
+        TimeSet_First_UI();
+		
+        OLED_ReverseArea(24,16,32,16);
+        OLED_Update();
+    }
+
+    
+}
+
+
+uint8_t Get_Max_Day(uint8_t year, uint8_t month)
+{
+    // 1-12
+iconv: Core/Src/TIMESET.c:70:11: cannot convert
