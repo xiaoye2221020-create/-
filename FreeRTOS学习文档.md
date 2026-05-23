@@ -1,4 +1,4 @@
-# 智能手表 FreeRTOS 学习文档
+# 智能手表 FreeRTOS
 
 > 基于 STM32F103C8T6 + FreeRTOS v10.3.1 的完整嵌入式项目解析
 
